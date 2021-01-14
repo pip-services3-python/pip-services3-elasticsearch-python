@@ -44,10 +44,10 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
             - index_message:   True to enable indexing for message object (default: False)
 
     ### References ###
-        - *:context-info:*:*:1.0    (optional) :class:`ContextInfo <pip_services3_components.info.ContextInfo.ContextInfo>` to detect the context id and specify counters source
-        - *:discovery:*:*:1.0       (optional) :class:`IDiscovery <pip_services3_components.connect.IDiscovery.IDiscovery>` services to resolve connection
+        - `*:context-info:*:*:1.0`    (optional) :class:`ContextInfo <pip_services3_components.info.ContextInfo.ContextInfo>` to detect the context id and specify counters source
+        - `*:discovery:*:*:1.0`       (optional) :class:`IDiscovery <pip_services3_components.connect.IDiscovery.IDiscovery>` services to resolve connection
 
-    ### Example ###
+    Example:
 
     .. code-block:: python
 

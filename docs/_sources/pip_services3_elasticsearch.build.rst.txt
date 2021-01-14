@@ -1,0 +1,18 @@
+pip\_services3\_elasticsearch.build package
+===========================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   pip_services3_elasticsearch.build.DefaultElasticSearchFactory
+
+Module contents
+---------------
+
+.. automodule:: pip_services3_elasticsearch.build
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,18 @@
+pip\_services3\_elasticsearch.log package
+=========================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   pip_services3_elasticsearch.log.ElasticSearchLogger
+
+Module contents
+---------------
+
+.. automodule:: pip_services3_elasticsearch.log
+   :members:
+   :undoc-members:
+   :show-inheritance:

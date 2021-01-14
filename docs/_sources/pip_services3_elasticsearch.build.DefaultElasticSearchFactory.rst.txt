@@ -1,0 +1,7 @@
+pip\_services3\_elasticsearch.build.DefaultElasticSearchFactory module
+======================================================================
+
+.. automodule:: pip_services3_elasticsearch.build.DefaultElasticSearchFactory
+   :members:
+   :undoc-members:
+   :show-inheritance:

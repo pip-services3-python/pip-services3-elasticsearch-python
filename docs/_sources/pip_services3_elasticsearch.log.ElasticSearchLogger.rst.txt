@@ -1,0 +1,7 @@
+pip\_services3\_elasticsearch.log.ElasticSearchLogger module
+============================================================
+
+.. automodule:: pip_services3_elasticsearch.log.ElasticSearchLogger
+   :members:
+   :undoc-members:
+   :show-inheritance:
