@@ -16,15 +16,23 @@ Links
 from setuptools import setup
 from setuptools import find_packages
 
+readme = ''
+
+try:
+    readme = open('readme.md').read()
+except:
+    pass
+
 setup(
     name='pip_services3_elasticsearch',
-    version='3.0.0',
+    version='3.0.2',
     url='http://github.com/pip-services3-python/pip-services3-elasticsearch-python',
     license='MIT',
     author='Conceptual Vision Consulting LLC',
     author_email='seroukhov@gmail.com',
     description='ElasticSearch components for Pip.Services in Python',
-    long_description=__doc__,
+    long_description=readme,
+    long_description_content_type="text/markdown",
     packages=find_packages(exclude=['config', 'data', 'test']),
     include_package_data=True,
     zip_safe=True,

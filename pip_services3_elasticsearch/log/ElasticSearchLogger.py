@@ -183,7 +183,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         self.__current_index = new_index
 
         try:
-            if self.__client.indices.exists(index=self.__current_index):
+            if not self.__client.indices.exists(index=self.__current_index):
                 self.__client.indices.create(index=self.__current_index, body={
                     'settings': {'number_of_shards': 1},
                     'mappings': {

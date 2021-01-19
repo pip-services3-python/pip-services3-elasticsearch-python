@@ -22,7 +22,7 @@ The module contains the following packages:
 
 Install the Python package as
 ```bash
-pip install pip_services3_elasticsearch
+pip install pip-services3-elasticsearch
 ```
 
 Microservice components shall perform logging usual way using CompositeLogger component.
