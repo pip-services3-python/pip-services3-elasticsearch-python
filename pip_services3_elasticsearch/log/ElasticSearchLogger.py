@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, helpers
 from moment import Moment
 from pip_services3_commons.data import IdGenerator
 from pip_services3_commons.errors import ConfigException
@@ -230,24 +230,24 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
             self.__create_index_if_needed('elasticsearch_logger', False)
             bulk = []
             for message in messages:
-                bulk.append({
-                    'index': {
-                        '_index': self.__current_index,
-                        '_type': 'log_message',
-                        '_id': IdGenerator.next_long()
-                    }
-                })
+
 
                 # Convert objects for json serialization
                 # TODO: Maybe need move this to other module
                 if hasattr(message, 'error') and message.error is not None:
                     message.error = message.error.__dict__
-                message.time = str(message.time)
 
-                bulk.append(message.__dict__)
+                bulk.append({
+                        '_index': self.__current_index,
+                        '_type': 'log_message',
+                        '_id': IdGenerator.next_long(),
+                        '_source': message.__dict__
+                })
 
             if bulk:
-                self.__client.bulk(body=bulk)
+                response = helpers.bulk(self.__client, bulk, stats_only=True)
+                if response[0] != len(bulk):
+                    raise Exception('Not all messages were recorded.')
 
         except Exception as err:
             raise err
