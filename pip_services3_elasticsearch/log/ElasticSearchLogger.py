@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from collections.abc import Iterable
+import inspect
+
 from datetime import datetime, timezone
 
 from elasticsearch import Elasticsearch, helpers
@@ -231,17 +234,11 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
             bulk = []
             for message in messages:
 
-
-                # Convert objects for json serialization
-                # TODO: Maybe need move this to other module
-                if hasattr(message, 'error') and message.error is not None:
-                    message.error = message.error.__dict__
-
                 bulk.append({
                         '_index': self.__current_index,
                         '_type': 'log_message',
                         '_id': IdGenerator.next_long(),
-                        '_source': message.__dict__
+                        '_source': self._error_to_json(message)
                 })
 
             if bulk:
@@ -251,3 +248,29 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
 
         except Exception as err:
             raise err
+
+    def _error_to_json(self, err):
+        # Convert objects for json serialization
+        # TODO: Maybe need move this to other module
+        
+        result_dict = {}
+
+        if err is None:
+            return None
+        elif isinstance(err, dict):
+            items = err.items()
+        elif isinstance(err, Iterable):
+            items = err
+        else:
+            items = inspect.getmembers(err)
+
+        for key, value in items:
+            if not key.startswith('_') and not callable(value):
+                if key == 'args':
+                    return ", ".join(value)
+                if not isinstance(value, (int, float, str, tuple, list, datetime)):
+                    result_dict[key] = self._error_to_json(value)
+                else:
+                    result_dict[key] = value if not isinstance(value, (tuple, list)) else ", ".join(value)
+
+        return result_dict

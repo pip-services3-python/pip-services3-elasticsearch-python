@@ -25,7 +25,7 @@ except:
 
 setup(
     name='pip_services3_elasticsearch',
-    version='3.0.3',
+    version='3.0.4',
     url='http://github.com/pip-services3-python/pip-services3-elasticsearch-python',
     license='MIT',
     author='Conceptual Vision Consulting LLC',
