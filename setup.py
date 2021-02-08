@@ -21,11 +21,11 @@ readme = ''
 try:
     readme = open('readme.md').read()
 except:
-    pass
+    readme = __doc__
 
 setup(
     name='pip_services3_elasticsearch',
-    version='3.0.2',
+    version='3.0.3',
     url='http://github.com/pip-services3-python/pip-services3-elasticsearch-python',
     license='MIT',
     author='Conceptual Vision Consulting LLC',
