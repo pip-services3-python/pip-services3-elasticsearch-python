@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from collections.abc import Iterable
 import inspect
-
+from collections.abc import Iterable
 from datetime import datetime, timezone
 
 from elasticsearch import Elasticsearch, helpers
@@ -45,6 +44,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
             - timeout:         invocation timeout in milliseconds (default: 30 sec)
             - max_retries:     maximum number of retries (default: 3)
             - index_message:   True to enable indexing for message object (default: False)
+            - include_type_name: Will create using a "typed" index compatible with ElasticSearch 6.x (default: false)
 
     ### References ###
         - `*:context-info:*:*:1.0`    (optional) :class:`ContextInfo <pip_services3_components.info.ContextInfo.ContextInfo>` to detect the context id and specify counters source
@@ -87,6 +87,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         self.__timeout = 30000
         self.__max_retries = 3
         self.__index_message = False
+        self.__include_type_name = False
 
         self.__client = None
 
@@ -107,6 +108,8 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         self.__timeout = config.get_as_string_with_default('options.timeout', self.__timeout)
         self.__max_retries = config.get_as_string_with_default('options.max_retries', self.__max_retries)
         self.__index_message = config.get_as_string_with_default('options.index_message', self.__index_message)
+        self.__include_type_name = config.get_as_boolean_with_default('options.include_type_name',
+                                                                      self.__include_type_name)
 
     def set_references(self, references):
         """
@@ -161,6 +164,8 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         """
         try:
             self._save(self._cache)
+            self.__client.close()
+
             if self.__timer:
                 self.__timer.stop()
             self._cache = []
@@ -187,39 +192,47 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
 
         try:
             if not self.__client.indices.exists(index=self.__current_index):
-                self.__client.indices.create(index=self.__current_index, body={
-                    'settings': {'number_of_shards': 1},
-                    'mappings': {
-                        'log_message': {
-                            'properties': {
-                                'time': {'type': 'date', 'index': True},
-                                'source': {'type': "keyword", 'index': True},
-                                'level': {'type': "keyword", 'index': True},
-                                'correlation_id': {'type': "text", 'index': True},
-                                'error': {
-                                    'type': 'object',
-                                    'properties': {
-                                        'type': {'type': "keyword", 'index': True},
-                                        'category': {'type': "keyword", 'index': True},
-                                        'status': {'type': "integer", 'index': False},
-                                        'code': {'type': "keyword", 'index': True},
-                                        'message': {'type': "text", 'index': False},
-                                        'details': {'type': "object"},
-                                        'correlation_id': {'type': "text", 'index': False},
-                                        'cause': {'type': "text", 'index': False},
-                                        'stack_trace': {'type': "text", 'index': False}
-                                    }
-                                },
-                                'message': {'type': 'text', 'index': self.__index_message}
-                            }
-                        }
-                    }
-                })
+                self.__client.indices.create(index=self.__current_index,
+                                             include_type_name=self.__include_type_name,
+                                             body={
+                                                 'settings': {'number_of_shards': 1},
+                                                 'mappings': self._get_index_schema()
+                                             })
         except Exception as err:
             # Skip already exist errors
             if 'resource_already_exists' in str(err):
                 return
             raise err
+
+    def _get_index_schema(self):
+        schema = {
+            'properties': {
+                'time': {'type': 'date', 'index': True},
+                'source': {'type': "keyword", 'index': True},
+                'level': {'type': "keyword", 'index': True},
+                'correlation_id': {'type': "text", 'index': True},
+                'error': {
+                    'type': 'object',
+                    'properties': {
+                        'type': {'type': "keyword", 'index': True},
+                        'category': {'type': "keyword", 'index': True},
+                        'status': {'type': "integer", 'index': False},
+                        'code': {'type': "keyword", 'index': True},
+                        'message': {'type': "text", 'index': False},
+                        'details': {'type': "object"},
+                        'correlation_id': {'type': "text", 'index': False},
+                        'cause': {'type': "text", 'index': False},
+                        'stack_trace': {'type': "text", 'index': False}
+                    }
+                },
+                'message': {'type': 'text', 'index': self.__index_message}
+            }
+        }
+
+        if self.__include_type_name:
+            return {'log_message': schema}
+        else:
+            return schema
 
     def _save(self, messages):
         """
@@ -233,13 +246,9 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
             self.__create_index_if_needed('elasticsearch_logger', False)
             bulk = []
             for message in messages:
-
-                bulk.append({
-                        '_index': self.__current_index,
-                        '_type': 'log_message',
-                        '_id': IdGenerator.next_long(),
-                        '_source': self._error_to_json(message)
-                })
+                data = {'_source': self._error_to_json(message)}
+                data.update(self._get_log_item())
+                bulk.append(data)
 
             if bulk:
                 response = helpers.bulk(self.__client, bulk, stats_only=True)
@@ -252,7 +261,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
     def _error_to_json(self, err):
         # Convert objects for json serialization
         # TODO: Maybe need move this to other module
-        
+
         result_dict = {}
 
         if err is None:
@@ -274,3 +283,10 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
                     result_dict[key] = value if not isinstance(value, (tuple, list)) else ", ".join(value)
 
         return result_dict
+
+    def _get_log_item(self):
+        if self.__include_type_name:
+            return {'_index': self.__current_index, '_type': "log_message",
+                    '_id': IdGenerator.next_long()}  # ElasticSearch 6.x
+        else:
+            return {'_index': self.__current_index, '_id': IdGenerator.next_long()}  # ElasticSearch 7.x
