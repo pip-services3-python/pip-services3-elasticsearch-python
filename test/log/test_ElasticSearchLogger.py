@@ -26,7 +26,8 @@ class TestElasticSearchLogger:
             'daily', True,
             "date_format", date_format,
             'connection.host', host,
-            'connection.port', port
+            'connection.port', port,
+            # 'options.include_type_name', True
         )
         cls.__logger.configure(config)
 
