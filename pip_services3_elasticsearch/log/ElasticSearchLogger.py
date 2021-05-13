@@ -3,14 +3,16 @@
 import inspect
 from collections.abc import Iterable
 from datetime import datetime, timezone
+from typing import Optional, List, Any
 
 from elasticsearch import Elasticsearch, helpers
 from moment import Moment
+from pip_services3_commons.config import ConfigParams
 from pip_services3_commons.data import IdGenerator
 from pip_services3_commons.errors import ConfigException
-from pip_services3_commons.refer import IReferenceable
+from pip_services3_commons.refer import IReferenceable, IReferences
 from pip_services3_commons.run import IOpenable
-from pip_services3_components.log import CachedLogger
+from pip_services3_components.log import CachedLogger, LogMessage
 from pip_services3_components.test.SetInterval import SetInterval
 from pip_services3_rpc.connect import HttpConnectionResolver
 
@@ -54,19 +56,19 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
 
     .. code-block:: python
 
-        let logger = new ElasticSearchLogger();
-        logger.configure(ConfigParams.fromTuples(
+        logger = new ElasticSearchLogger()
+        logger.configure(ConfigParams.from_tuples(
             "connection.protocol", "http",
             "connection.host", "localhost",
             "connection.port", 9200
-        ));
+        ))
 
         try:
             logger.open("123")
         except Exception as err:
+            logger.error("123", err, "Error occured: {}", err.message)
             # do something
 
-        logger.error("123", ex, "Error occured: {}", ex.message);
         logger.debug("123", "Everything is OK.");
     """
 
@@ -82,7 +84,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         self.__index = 'log'
         self._date_format = 'YYYYMMDD'
         self.__daily_index = False
-        self.__current_index = ''
+        self.__current_index: str = None
         self.__reconnect = 60000
         self.__timeout = 30000
         self.__max_retries = 3
@@ -91,7 +93,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
 
         self.__client = None
 
-    def configure(self, config):
+    def configure(self, config: ConfigParams):
         """
         Configures component by passing configuration parameters.
 
@@ -111,7 +113,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         self.__include_type_name = config.get_as_boolean_with_default('options.include_type_name',
                                                                       self.__include_type_name)
 
-    def set_references(self, references):
+    def set_references(self, references: IReferences):
         """
         Sets references to dependent components.
 
@@ -120,7 +122,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         super().set_references(references)
         self.__connection_resolver.set_references(references)
 
-    def is_open(self):
+    def is_open(self) -> bool:
         """
         Checks if the component is opened.
 
@@ -128,7 +130,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         """
         return self.__timer is not None
 
-    def open(self, correlation_id):
+    def open(self, correlation_id: Optional[str]):
         """
         Opens the component.
 
@@ -156,7 +158,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         except Exception as err:
             raise err
 
-    def close(self, correlation_id):
+    def close(self, correlation_id: Optional[str]):
         """
         Closes component and frees used resources.
 
@@ -175,7 +177,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         except Exception as err:
             raise err
 
-    def __get_current_index(self):
+    def __get_current_index(self) -> str:
         if not self.__daily_index: return self.__index
 
         today = datetime.utcnow().astimezone(tz=timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
@@ -183,7 +185,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
 
         return self.__index + '-' + date_pattern
 
-    def __create_index_if_needed(self, correlation_id, force):
+    def __create_index_if_needed(self, correlation_id: Optional[str], force):
         new_index = self.__get_current_index()
         if not force and self.__current_index == new_index:
             return
@@ -204,7 +206,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
                 return
             raise err
 
-    def _get_index_schema(self):
+    def _get_index_schema(self) -> dict:
         schema = {
             'properties': {
                 'time': {'type': 'date', 'index': True},
@@ -234,7 +236,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         else:
             return schema
 
-    def _save(self, messages):
+    def _save(self, messages: List[LogMessage]):
         """
         Saves log messages from the cache.
 
@@ -246,8 +248,8 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
             self.__create_index_if_needed('elasticsearch_logger', False)
             bulk = []
             for message in messages:
-                data = {'_source': self._error_to_json(message)}
-                data.update(self._get_log_item())
+                data = {'_source': self.__error_to_json(message)}
+                data.update(self.__get_log_item())
                 bulk.append(data)
 
             if bulk:
@@ -258,7 +260,14 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         except Exception as err:
             raise err
 
-    def _error_to_json(self, err):
+    def __get_log_item(self) -> Any:
+        if self.__include_type_name:
+            return {'_index': self.__current_index, '_type': "log_message",
+                    '_id': IdGenerator.next_long()}  # ElasticSearch 6.x
+        else:
+            return {'_index': self.__current_index, '_id': IdGenerator.next_long()}  # ElasticSearch 7.x
+
+    def __error_to_json(self, err):
         # Convert objects for json serialization
         # TODO: Maybe need move this to other module
 
@@ -278,15 +287,8 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
                 if key == 'args':
                     return ", ".join(value)
                 if not isinstance(value, (int, float, str, tuple, list, datetime)):
-                    result_dict[key] = self._error_to_json(value)
+                    result_dict[key] = self.__error_to_json(value)
                 else:
                     result_dict[key] = value if not isinstance(value, (tuple, list)) else ", ".join(value)
 
         return result_dict
-
-    def _get_log_item(self):
-        if self.__include_type_name:
-            return {'_index': self.__current_index, '_type': "log_message",
-                    '_id': IdGenerator.next_long()}  # ElasticSearch 6.x
-        else:
-            return {'_index': self.__current_index, '_id': IdGenerator.next_long()}  # ElasticSearch 7.x

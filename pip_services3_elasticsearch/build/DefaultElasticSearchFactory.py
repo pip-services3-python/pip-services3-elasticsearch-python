@@ -12,12 +12,11 @@ class DefaultElasticSearchFactory(Factory):
 
     See :class:`ElasticSearchLogger <log.ElasticSearchLogger>`
     """
-    descriptor = Descriptor("pip-services", "factory", "elasticsearch", "default", "1.0")
-    elastic_search_logger_descriptor = Descriptor("pip-services", "logger", "elasticsearch", "*", "1.0")
+    ElasticSearchLoggerDescriptor = Descriptor("pip-services", "logger", "elasticsearch", "*", "1.0")
 
     def __init__(self):
         """
         Create a new instance of the factory.
         """
         super(DefaultElasticSearchFactory, self).__init__()
-        self.register_as_type(DefaultElasticSearchFactory.elastic_search_logger_descriptor, ElasticSearchLogger)
+        self.register_as_type(DefaultElasticSearchFactory.ElasticSearchLoggerDescriptor, ElasticSearchLogger)
