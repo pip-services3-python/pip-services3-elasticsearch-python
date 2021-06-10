@@ -142,7 +142,7 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
         connection = self.__connection_resolver.resolve(correlation_id)
         if connection is None:
             raise ConfigException(correlation_id, 'NO_CONNECTION', 'Connection is not configured')
-        uri = connection.get_uri()
+        uri = connection.get_as_string('uri')
 
         options = {
             'request_timeout': self.__timeout,
