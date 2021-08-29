@@ -3,7 +3,7 @@
 from pip_services3_commons.refer import Descriptor
 from pip_services3_components.build import Factory
 
-from log.ElasticSearchLogger import ElasticSearchLogger
+from ..log import ElasticSearchLogger
 
 
 class DefaultElasticSearchFactory(Factory):
@@ -12,11 +12,11 @@ class DefaultElasticSearchFactory(Factory):
 
     See :class:`ElasticSearchLogger <log.ElasticSearchLogger>`
     """
-    ElasticSearchLoggerDescriptor = Descriptor("pip-services", "logger", "elasticsearch", "*", "1.0")
+    __ElasticSearchLoggerDescriptor = Descriptor("pip-services", "logger", "elasticsearch", "*", "1.0")
 
     def __init__(self):
         """
         Create a new instance of the factory.
         """
         super(DefaultElasticSearchFactory, self).__init__()
-        self.register_as_type(DefaultElasticSearchFactory.ElasticSearchLoggerDescriptor, ElasticSearchLogger)
+        self.register_as_type(self.__ElasticSearchLoggerDescriptor, ElasticSearchLogger)
