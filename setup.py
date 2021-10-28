@@ -13,8 +13,8 @@ Links
 
 """
 
-from setuptools import setup
 from setuptools import find_packages
+from setuptools import setup
 
 readme = ''
 
@@ -25,7 +25,7 @@ except:
 
 setup(
     name='pip_services3_elasticsearch',
-    version='3.1.3',
+    version='3.1.4',
     url='http://github.com/pip-services3-python/pip-services3-elasticsearch-python',
     license='MIT',
     author='Conceptual Vision Consulting LLC',
@@ -38,16 +38,13 @@ setup(
     zip_safe=True,
     platforms='any',
     install_requires=[
-        'iso8601',
-        'pytest',
-        'pytz',
-        'PyYAML',
         'moment',
         'elasticsearch',
 
-        'pip-services3-commons',
-        'pip-services3-components',
-        'pip-services3-rpc'
+        'pip-services3-commons >= 3.3.9, < 4.0',
+        'pip-services3-components >= 3.5.0, < 4.0',
+        'pip-services3-rpc >= 3.2.12, < 4.0'
+
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -60,5 +57,5 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Topic :: Software Development :: Libraries :: Python Modules'
-    ]    
+    ]
 )
