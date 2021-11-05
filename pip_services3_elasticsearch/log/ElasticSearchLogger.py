@@ -105,11 +105,11 @@ class ElasticSearchLogger(CachedLogger, IReferenceable, IOpenable):
 
         self.__index = config.get_as_string_with_default('index', self.__index)
         self._date_format = config.get_as_string_with_default('date_format', self._date_format)
-        self.__daily_index = config.get_as_string_with_default('daily', self.__daily_index)
-        self.__reconnect = config.get_as_string_with_default('options.reconnect', self.__reconnect)
-        self.__timeout = config.get_as_string_with_default('options.timeout', self.__timeout)
-        self.__max_retries = config.get_as_string_with_default('options.max_retries', self.__max_retries)
-        self.__index_message = config.get_as_string_with_default('options.index_message', self.__index_message)
+        self.__daily_index = config.get_as_boolean_with_default('daily', self.__daily_index)
+        self.__reconnect = config.get_as_integer_with_default('options.reconnect', self.__reconnect)
+        self.__timeout = config.get_as_integer_with_default('options.timeout', self.__timeout)
+        self.__max_retries = config.get_as_integer_with_default('options.max_retries', self.__max_retries)
+        self.__index_message = config.get_as_boolean_with_default('options.index_message', self.__index_message)
         self.__include_type_name = config.get_as_boolean_with_default('options.include_type_name',
                                                                       self.__include_type_name)
 
