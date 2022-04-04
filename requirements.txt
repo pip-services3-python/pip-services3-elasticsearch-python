@@ -1,6 +1,6 @@
 pytest
 moment
-elasticsearch
+elasticsearch >= 7.17.2, < 8.0.0
 
 pip-services3-commons >= 3.3.9, < 4.0
 pip-services3-components >= 3.5.0, < 4.0
